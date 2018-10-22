@@ -11,6 +11,8 @@
 
 namespace think;
 
+use think\exception\ClassNotFoundException;
+
 class Log implements LoggerInterface
 {
     const EMERGENCY = 'emergency';
@@ -48,12 +50,6 @@ class Log implements LoggerInterface
     protected $key;
 
     /**
-     * 是否允许日志写入
-     * @var bool
-     */
-    protected $allowWrite = true;
-
-    /**
      * 应用对象
      * @var App
      */
@@ -64,11 +60,6 @@ class Log implements LoggerInterface
         $this->app = $app;
     }
 
-    public static function __make(App $app, Config $config)
-    {
-        return (new static($app))->init($config->pull('log'));
-    }
-
     /**
      * 日志初始化
      * @access public
@@ -77,17 +68,21 @@ class Log implements LoggerInterface
      */
     public function init($config = [])
     {
-        $type = isset($config['type']) ? $config['type'] : 'File';
+        $type  = isset($config['type']) ? $config['type'] : 'File';
+        $class = false !== strpos($type, '\\') ? $type : '\\think\\log\\driver\\' . ucwords($type);
 
         $this->config = $config;
 
         unset($config['type']);
 
-        if (!empty($config['close'])) {
-            $this->allowWrite = false;
+        if (class_exists($class)) {
+            $this->driver = new $class($config);
+        } else {
+            throw new ClassNotFoundException('class not exists:' . $class, $class);
         }
 
-        $this->driver = Loader::factory($type, '\\think\\log\\driver\\', $config);
+        // 记录初始化信息
+        $this->app->isDebug() && $this->record('[ LOG ] INIT ' . $type);
 
         return $this;
     }
@@ -113,10 +108,6 @@ class Log implements LoggerInterface
      */
     public function record($msg, $type = 'info', array $context = [])
     {
-        if (!$this->allowWrite) {
-            return;
-        }
-
         if (is_string($msg)) {
             $replace = [];
             foreach ($context as $key => $val) {
@@ -177,56 +168,47 @@ class Log implements LoggerInterface
     }
 
     /**
-     * 关闭本次请求日志写入
-     * @access public
-     * @return $this
-     */
-    public function close()
-    {
-        $this->allowWrite = false;
-        $this->log        = [];
-
-        return $this;
-    }
-
-    /**
      * 保存调试信息
      * @access public
      * @return bool
      */
     public function save()
     {
-        if (empty($this->log) || !$this->allowWrite || !$this->driver) {
-            return true;
-        }
-
-        if (!$this->check($this->config)) {
-            // 检测日志写入权限
-            return false;
-        }
-
-        if (empty($this->config['level'])) {
-            // 获取全部日志
-            $log = $this->log;
-            if (!$this->app->isDebug() && isset($log['debug'])) {
-                unset($log['debug']);
+        if (!empty($this->log)) {
+            if (is_null($this->driver)) {
+                $this->init($this->app['config']->pull('log'));
             }
-        } else {
-            // 记录允许级别
-            $log = [];
-            foreach ($this->config['level'] as $level) {
-                if (isset($this->log[$level])) {
-                    $log[$level] = $this->log[$level];
+
+            if (!$this->check($this->config)) {
+                // 检测日志写入权限
+                return false;
+            }
+
+            if (empty($this->config['level'])) {
+                // 获取全部日志
+                $log = $this->log;
+                if (!$this->app->isDebug() && isset($log['debug'])) {
+                    unset($log['debug']);
+                }
+            } else {
+                // 记录允许级别
+                $log = [];
+                foreach ($this->config['level'] as $level) {
+                    if (isset($this->log[$level])) {
+                        $log[$level] = $this->log[$level];
+                    }
                 }
             }
+
+            $result = $this->driver->save($log);
+            if ($result) {
+                $this->log = [];
+            }
+
+            return $result;
         }
 
-        $result = $this->driver->save($log);
-        if ($result) {
-            $this->log = [];
-        }
-
-        return $result;
+        return true;
     }
 
     /**
@@ -252,6 +234,10 @@ class Log implements LoggerInterface
 
         // 监听log_write
         $this->app['hook']->listen('log_write', $log);
+
+        if (is_null($this->driver)) {
+            $this->init($this->app['config']->pull('log'));
+        }
 
         // 写入日志
         $result = $this->driver->save($log);

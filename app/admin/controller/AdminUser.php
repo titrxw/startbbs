@@ -34,6 +34,7 @@ class AdminUser extends AdminBase
     public function index()
     {
         $admin_user_list = $this->admin_user_model->where('group_id',1)->select();
+  
 
         return $this->fetch('index', ['admin_user_list' => $admin_user_list]);
     }
@@ -62,7 +63,7 @@ class AdminUser extends AdminBase
             if ($validate_result !== true) {
                 $this->error($validate_result);
             } else {
-                $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+                $data['password'] = md5($data['password'] . Config::get('salt'));
                 if ($this->admin_user_model->allowField(true)->save($data)) {
                     $auth_group_access['uid']      = $this->admin_user_model->id;
                     $auth_group_access['group_id'] = $group_id;
@@ -111,7 +112,7 @@ class AdminUser extends AdminBase
                 $admin_user->status   = $data['status'];
 
                 if (!empty($data['password']) && !empty($data['confirm_password'])) {
-                    $admin_user->password = password_hash($data['password'], PASSWORD_DEFAULT);;
+                    $admin_user->password = md5($data['password'] . Config::get('salt'));
                 }
                 if ($admin_user->save() !== false) {
                     $auth_group_access['uid']      = $id;

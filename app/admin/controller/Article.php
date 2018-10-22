@@ -38,9 +38,9 @@ class Article extends AdminBase
         $field = 'id,title,cid,author,reading,status,publish_time,sort';
 
         if ($cid > 0) {
-            $category_children_ids = $this->category_model->where(['path' => ['like', "%,{$cid},%"]])->column('id');
+            $category_children_ids = $this->category_model->where([['path', 'like', "%,{$cid},%"]])->column('id');
             $category_children_ids = (!empty($category_children_ids) && is_array($category_children_ids)) ? implode(',', $category_children_ids) . ',' . $cid : $cid;
-            $map['cid']            = ['IN', $category_children_ids];
+            $map[]            = ['cid', 'IN', $category_children_ids];
         }
 
         if (!empty($keyword)) {

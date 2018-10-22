@@ -187,7 +187,7 @@ class Validate
      */
     public function __construct(array $rules = [], array $message = [], array $field = [])
     {
-        $this->rule    = $rules + $this->rule;
+        $this->rule    = array_merge($this->rule, $rules);
         $this->message = array_merge($this->message, $message);
         $this->field   = array_merge($this->field, $field);
     }
@@ -198,7 +198,6 @@ class Validate
      * @param  array $rules 验证规则
      * @param  array $message 验证提示信息
      * @param  array $field 验证字段描述信息
-     * @return Validate
      */
     public static function make(array $rules = [], array $message = [], array $field = [])
     {
@@ -215,7 +214,7 @@ class Validate
     public function rule($name, $rule = '')
     {
         if (is_array($name)) {
-            $this->rule = $name + $this->rule;
+            $this->rule = array_merge($this->rule, $name);
             if (is_array($rule)) {
                 $this->field = array_merge($this->field, $rule);
             }
@@ -749,7 +748,7 @@ class Validate
                 $result = in_array($value, [true, false, 0, 1, '0', '1'], true);
                 break;
             case 'number':
-                $result = ctype_digit((string) $value);
+                $result = is_numeric($value);
                 break;
             case 'array':
                 // 是否为数组
@@ -785,13 +784,13 @@ class Validate
     {
         if (function_exists('exif_imagetype')) {
             return exif_imagetype($image);
-        }
-
-        try {
-            $info = getimagesize($image);
-            return $info ? $info[2] : false;
-        } catch (\Exception $e) {
-            return false;
+        } else {
+            try {
+                $info = getimagesize($image);
+                return $info ? $info[2] : false;
+            } catch (\Exception $e) {
+                return false;
+            }
         }
     }
 
@@ -845,9 +844,9 @@ class Validate
             return true;
         } elseif ($file instanceof File) {
             return $file->checkExt($rule);
+        } else {
+            return false;
         }
-
-        return false;
     }
 
     /**
@@ -868,9 +867,9 @@ class Validate
             return true;
         } elseif ($file instanceof File) {
             return $file->checkMime($rule);
+        } else {
+            return false;
         }
-
-        return false;
     }
 
     /**
@@ -891,9 +890,9 @@ class Validate
             return true;
         } elseif ($file instanceof File) {
             return $file->checkSize($rule);
+        } else {
+            return false;
         }
-
-        return false;
     }
 
     /**
@@ -929,9 +928,9 @@ class Validate
             list($w, $h) = $rule;
 
             return $w == $width && $h == $height;
+        } else {
+            return in_array($this->getImageType($file->getRealPath()), [1, 2, 3, 6]);
         }
-
-        return in_array($this->getImageType($file->getRealPath()), [1, 2, 3, 6]);
     }
 
     /**
@@ -1011,7 +1010,6 @@ class Validate
         if ($db->where($map)->field($pk)->find()) {
             return false;
         }
-
         return true;
     }
 
@@ -1063,9 +1061,9 @@ class Validate
 
         if ($this->getDataValue($data, $field) == $val) {
             return !empty($value) || '0' == $value;
+        } else {
+            return true;
         }
-
-        return true;
     }
 
     /**
@@ -1078,13 +1076,13 @@ class Validate
      */
     public function requireCallback($value, $rule, $data)
     {
-        $result = call_user_func_array([$this, $rule], [$value, $data]);
+        $result = call_user_func_array($rule, [$value, $data]);
 
         if ($result) {
             return !empty($value) || '0' == $value;
+        } else {
+            return true;
         }
-
-        return true;
     }
 
     /**
@@ -1101,9 +1099,9 @@ class Validate
 
         if (!empty($val)) {
             return !empty($value) || '0' == $value;
+        } else {
+            return true;
         }
-
-        return true;
     }
 
     /**
@@ -1185,10 +1183,10 @@ class Validate
             // 长度区间
             list($min, $max) = explode(',', $rule);
             return $length >= $min && $length <= $max;
+        } else {
+            // 指定长度
+            return $length == $rule;
         }
-
-        // 指定长度
-        return $length == $rule;
     }
 
     /**
@@ -1323,7 +1321,7 @@ class Validate
             $rule = '/^' . $rule . '$/';
         }
 
-        return is_scalar($value) && 1 === preg_match($rule, (string) $value);
+        return 1 === preg_match($rule, (string) $value);
     }
 
     /**
@@ -1438,7 +1436,7 @@ class Validate
      * 获取数据验证的场景
      * @access protected
      * @param  string $scene  验证场景
-     * @return void
+     * @return array
      */
     protected function getScene($scene = '')
     {
@@ -1447,11 +1445,11 @@ class Validate
             $scene = $this->currentScene;
         }
 
+        $this->only = $this->append = $this->remove = [];
+
         if (empty($scene)) {
             return;
         }
-
-        $this->only = $this->append = $this->remove = [];
 
         if (method_exists($this, 'scene' . $scene)) {
             call_user_func([$this, 'scene' . $scene]);

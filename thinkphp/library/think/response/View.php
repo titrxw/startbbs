@@ -11,6 +11,7 @@
 
 namespace think\response;
 
+use think\Container;
 use think\Response;
 
 class View extends Response
@@ -30,7 +31,9 @@ class View extends Response
     protected function output($data)
     {
         // 渲染模板输出
-        return $this->app['view']
+        $config = Container::get('config');
+        return Container::get('view')
+            ->init($config->pull('template'))
             ->filter($this->filter)
             ->fetch($data, $this->vars);
     }
@@ -61,6 +64,7 @@ class View extends Response
     {
         if (is_array($name)) {
             $this->vars = array_merge($this->vars, $name);
+            return $this;
         } else {
             $this->vars[$name] = $value;
         }
@@ -88,7 +92,9 @@ class View extends Response
      */
     public function exists($name)
     {
-        return $this->app['view']->exists($name);
+        return Container::get('view')
+            ->init(Container::get('config')->pull('template'))
+            ->exists($name);
     }
 
 }

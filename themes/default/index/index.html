@@ -4,6 +4,39 @@
   <meta name="description" content="{$Think.CONFIG.WEB_SITE_DESCRIPTION}">
 {/block}
 {block name="body"}
+<div class="fly-panel fly-column">
+  <div class="layui-container">
+    <ul class="layui-clear">
+      {volist name="category_list" id="vo"}
+      <li><a href="{:url('category/topic',['id'=>$vo.id])}"   >{$vo.name}</a></li>
+      {/volist}
+    </ul> 
+    
+    <div class="fly-column-right layui-hide-xs">
+      <form style="float: left;" class="layui-form" action="{:url('index/index',array('order'=>$corder))}" method="get">
+        <div class="layui-form-item">
+          <div class="layui-input-inline">
+            <input  style="margin-top: 6px;" value="{$keyword}"  type="text" name="keyword"  class="layui-input">
+            <i style="position: absolute;top: 1px;right: 2px;" class="layui-icon"></i>
+          </div>
+        </div>
+      </form>
+      <a href="{:url('topic/add')}" class="layui-btn">发表新帖</a> 
+    </div> 
+    <div class="layui-hide-sm layui-show-xs-block" style="text-align: center;"> 
+        <form style="    display: flex;"  class="layui-form" action="{:url('index/index',array('order'=>$corder))}" method="get">
+          <div class="layui-form-item">
+            <div class="layui-input-inline">
+              <input style="min-width: 90px;"  value="{$keyword}"  type="text" name="keyword"  class="layui-input">
+              <i style="position: absolute;top: -5px;right: 2px;" class="layui-icon"></i>
+            </div>
+          </div>
+          <a href="jie/add.html" class="layui-btn">发表新帖</a> 
+        </form>
+    </div> 
+  </div>
+</div>
+
 <div class="layui-container">
   <div class="layui-row layui-col-space15">
     <div class="layui-col-md8">
@@ -51,9 +84,9 @@
           <span class="fly-mid"></span>
           <a href="">精华</a>
           <span class="fly-filter-right layui-hide-xs">
-            <a href="" class="layui-this">按最新</a>
+            <a href="{:url('index/index',['order'=>'ord','keyword'=>$keyword])}" {if condition="$corder == 'ord'"} class="layui-this" {/if}>按最新</a>
             <span class="fly-mid"></span>
-            <a href="">按热议</a>
+            <a href="{:url('index/index',['order'=>'views','keyword'=>$keyword])}" {if condition="$corder == 'views'"} class="layui-this" {/if}>按热议</a>
           </span>
         </div>
 
@@ -87,16 +120,16 @@
           {/eq}
  {/volist}
         </ul>
-
+        {$page|raw}
       </div>
     </div>
     <div class="layui-col-md4">
       <div class="fly-panel">
         <div class="fly-panel-title">
-          广告区域
+          匠心之作
         </div>
         <div class="fly-panel-main">
-          <a href="http://www.startbbs.com" target="_blank" class="fly-zanzhu" style="background-color: #5FB878;">StartBBS 2.0 - 匠心之作</a>
+          <a href="http://www.zh5j.cn/" target="_blank" class="fly-zanzhu" style="background-color: #5FB878;">精品商城</a>
         </div>
       </div>
       

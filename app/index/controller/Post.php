@@ -37,10 +37,6 @@ class Post extends HomeBase
     {
 	    !is_login() && $this->error('没有登录', 'user/login');
         if ($this->request->isPost()) {
-	        //防灌水
-	        if(anti_rubbish()){
-		        $this->error('发贴时间间隔小于'.config('post_space').'秒');
-	    	}
             $data            = $this->request->param();
             $validate_result = $this->validate($data, 'Post');
 
@@ -55,7 +51,6 @@ class Post extends HomeBase
 	            if($files){
 		            $data['content'] = str_replace('tmp/'.$data['attach'],'attachment/'.date('Ym'),$data['content']);
 	            }
-	            $data['description'] =strcut(clearhtml($data['content']),0,200);
                 if ($this->post_model->allowField(true)->save($data)) {
 	                //更新统计
 					$this->category_model->where('id',$data['cid'])->setInc('posts');
@@ -63,19 +58,19 @@ class Post extends HomeBase
 					$this->topic_model->where('id',$data['topic_id'])->setInc('posts');
 		            //移动附件
 		            if($files){
-			            $upload_path = ROOT_PATH.'uploads';
-			            $tmp_path = $upload_path.DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.$data['attach'];
-			            $new_file_path = $upload_path.DIRECTORY_SEPARATOR.'attachment'.DIRECTORY_SEPARATOR.date('Ym');
-			            $new_save_path = '/uploads/attachment/'.date('Ym').'/';
+			            $upload_path = ROOT_PATH . 'public' . DS . 'uploads';
+			            $tmp_path = $upload_path.DS.'tmp'.DS.$data['attach'];
+			            $new_file_path = $upload_path.DS.'attachment'.DS.date('Ym');
+			            $new_save_path = '/public/uploads/attachment'.DS.date('Ym');
 			            if (!file_exists($new_file_path)) {
 				        	mkdir ($new_file_path, 0777, true );
 						}
 			            foreach($files as $k=>$file){
-				        	$tmp_file=$tmp_path.DIRECTORY_SEPARATOR.$file['savename'];
-				        	$new_file=$new_file_path.DIRECTORY_SEPARATOR.$file['savename'];
+				        	$tmp_file=$tmp_path.DS.$file['savename'];
+				        	$new_file=$new_file_path.DS.$file['savename'];
 				        	rename($tmp_file,$new_file);
 				        	
-				        	$url=$new_save_path.$file['savename'];
+				        	$url=$new_save_path.DS.$file['savename'];
 				        	$attachs[]=$url;//备用
 			                //附件入库
 			                $file_data = array (
@@ -93,8 +88,6 @@ class Post extends HomeBase
 			            }
 			            rmdir($tmp_path);
 		            }
-		            //记录发贴时间
-		            \Cookie::set('last_add_time',time());
                     $this->success('回贴成功','/topic/detail/id/'.$data['topic_id']);
                 } else {
                     $this->error('保存失败');
@@ -136,9 +129,7 @@ class Post extends HomeBase
     {
 	    !is_login() && $this->error('没有登录', 'user/login');
         $post = $this->post_model->find($id);
-	    if(!has_permission($post['uid'],1)){
-		    $this->error('请确认有权限或未登录');
-	    }
+
         if ($this->request->isPost()) {
             $data            = $this->request->param();
             $validate_result = $this->validate($data, 'Post');
@@ -152,23 +143,23 @@ class Post extends HomeBase
 	            if($files){
 		            $data['content'] = str_replace('tmp/'.$data['attach'],'attachment/'.date('Ym'),$data['content']);
 	            }
-	            $data['description'] =strcut(clearhtml($data['content']),0,200);
+	            
                 if ($this->post_model->allowField(true)->save($data, $id) !== false) {
 		            //移动附件
 		            if($files){
-			            $upload_path = ROOT_PATH. 'uploads';
-			            $tmp_path = $upload_path.DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.$data['attach'];
-			            $new_file_path = $upload_path.DIRECTORY_SEPARATOR.'attachment'.DIRECTORY_SEPARATOR.date('Ym');
-			            $new_save_path = '/uploads/attachment'.DIRECTORY_SEPARATOR.date('Ym');
+			            $upload_path = ROOT_PATH . 'public' . DS . 'uploads';
+			            $tmp_path = $upload_path.DS.'tmp'.DS.$data['attach'];
+			            $new_file_path = $upload_path.DS.'attachment'.DS.date('Ym');
+			            $new_save_path = '/public/uploads/attachment'.DS.date('Ym');
 			            if (!file_exists($new_file_path)) {
 				        	mkdir ($new_file_path, 0777, true );
 						}
 			            foreach($files as $file){
-				        	$tmp_file=$tmp_path.DIRECTORY_SEPARATOR.$file['savename'];
-				        	$new_file=$new_file_path.DIRECTORY_SEPARATOR.$file['savename'];
+				        	$tmp_file=$tmp_path.DS.$file['savename'];
+				        	$new_file=$new_file_path.DS.$file['savename'];
 				        	rename($tmp_file,$new_file);
 				        	
-				        	$url=$new_save_path.DIRECTORY_SEPARATOR.$file['savename'];
+				        	$url=$new_save_path.DS.$file['savename'];
 				        	$attachs[]=$url;//备用
 			                //附件入库
 			                $file_data[] = array (
@@ -206,7 +197,7 @@ class Post extends HomeBase
     public function delete($id = 0)
     {
 	    $data = $this->post_model->get($id);
-	    if(!has_permission($data['uid'],2)){
+	    if(!has_permission($data['uid'])){
 		    $this->error('请确认有权限或未登录');
 	    }
         if ($id) {

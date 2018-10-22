@@ -57,8 +57,7 @@ class Facade
      */
     protected static function createFacade($class = '', $args = [], $newInstance = false)
     {
-        $class = $class ?: static::class;
-
+        $class       = $class ?: static::class;
         $facadeClass = static::getFacadeClass();
 
         if ($facadeClass) {
@@ -85,13 +84,11 @@ class Facade
     /**
      * 带参数实例化当前Facade类
      * @access public
-     * @return mixed
+     * @return object
      */
     public static function instance(...$args)
     {
-        if (__CLASS__ != static::class) {
-            return self::createFacade('', $args);
-        }
+        return self::createFacade('', $args);
     }
 
     /**
@@ -100,7 +97,7 @@ class Facade
      * @param  string        $class          类名或者标识
      * @param  array|true    $args           变量
      * @param  bool          $newInstance    是否每次创建新的实例
-     * @return mixed
+     * @return object
      */
     public static function make($class, $args = [], $newInstance = false)
     {

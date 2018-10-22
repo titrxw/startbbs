@@ -224,8 +224,10 @@ class MorphMany extends Relation
         }
 
         return $this->query
-            ->whereExp($this->morphKey, '=' . $this->parent->getTable() . '.' . $this->parent->getPk())
-            ->where($this->morphType, '=', $this->type)
+            ->where([
+                [$this->morphKey, 'exp', '=' . $this->parent->getTable() . '.' . $this->parent->getPk()],
+                [$this->morphType, '=', $this->type],
+            ])
             ->fetchSql()
             ->$aggregate($field);
     }
@@ -242,7 +244,7 @@ class MorphMany extends Relation
     protected function eagerlyMorphToMany($where, $relation, $subRelation = '', $closure = false)
     {
         // 预载入关联查询 支持嵌套预载入
-        $this->query->removeOption('where');
+        $this->query->removeOptions('where');
 
         if ($closure) {
             $closure($this->query);

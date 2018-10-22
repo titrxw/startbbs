@@ -49,9 +49,6 @@ class User extends HomeBase
      */
     public function register()
     {
-	    if(config('allow_reg')==0){
-		    $this->error('注册功能已关闭','/');
-	    }
         if ($this->request->isPost()) {
             $data            = $this->request->post();
             $validate_result = $this->validate($data, 'User.register');
@@ -139,9 +136,9 @@ class User extends HomeBase
 		    $this->error('用户不存在','index/index');
 	    }
 	    $topic_model=new TopicModel();
-	    $user_topic = $topic_model->where(['uid'=>$id,'status'=>1])->limit(10)->select();
+	    $user_topic = $topic_model->where('uid',$id)->limit(10)->select();
 	    $post_model=new PostModel();
-	    $user_post = $post_model->alias('p')->field('p.content,p.update_time,p.topic_id,t.title')->where('p.is_first!=1 AND P.status=1 AND p.uid='.$id)->join('topic t','p.topic_id = t.id')->limit(5)->order('update_time','desc')->select();
+	    $user_post = $post_model->alias('p')->field('p.content,p.update_time,p.topic_id,t.title')->where('p.is_first!=1 AND p.uid='.$id)->join('topic t','p.topic_id = t.id')->limit(5)->order('update_time','desc')->select();
 
 	    $this->assign('title', '用户主页');
 	    $this->assign('user', $user);
@@ -211,7 +208,7 @@ class User extends HomeBase
                 $user->email    = $data['email'];
                 $user->status   = $data['status'];
                 if (!empty($data['password']) && !empty($data['confirm_password'])) {
-                    $user->password = md5($data['password'] . Config::get('salt'));
+                    $user->password = password_hash($data['password'], PASSWORD_DEFAULT);
                 }
                 if ($user->save() !== false) {
                     $this->success('更新成功');
@@ -222,78 +219,4 @@ class User extends HomeBase
         }
     }
 
-    /**
-     * 忘记密码
-     * @param string $
-     * @return
-     */
-	public function forget()
-	{
-		is_login() && $this->error('已经登录', '/');
-		if ($this->request->isPost()) {
-            $data            = $this->request->only(['email']);
-            $validate_result = $this->validate($data, 'User.forget'); 			
-            if ($validate_result !== true) {
-                $this->error($validate_result);
-            }
-            $user = $this->user_model->where('email',$data['email'])->field('id,password')->find();
-
-            if(!$user){
-	            $this->error('用户不存在！');
-            }
-            $title = '找回密码提示';
-            $key = base64_encode($user['id'].'.'.md5($user['password']));
-            $content = '尊敬的用户您好：<br />您在'.date("Y-m-d h:i:sa").'使用了找回密码功能，请点击下面的链接完成密码找回流程，如果无法正确打开页面，请将完整地址复制到浏览器地址栏。<br /><br />http://'.$_SERVER['HTTP_HOST'].'/user/resetpwd?key='.$key;
-            $result= send_mail($data['email'], $title, $content);
-            if($result){
-	            $this->success('发送邮件成功');
-            } else {
-	            $this->error('发送失败！');
-            }
-		}else {
-			$this->assign('title', '找回密码');
-			return $this->fetch();
-		}
-
-	}
-
-    /**
-     * 重置密码
-     * @param string $
-     * @return
-     */
-	public function resetpwd()
-	{
-		is_login() && $this->error('已经登录', '/');
-		if(input('?get.key')){
-			$key = base64_decode($this->request->get('key'));
-			$key_arr = explode('.',$key);
-			$password = $this->user_model->where('id',$key_arr[0])->value('password');
-			if(md5($password)==$key_arr[1]){
-				Session::set('verify',$key_arr[0]);
-			}else{
-				$this->error('重置验证码不正确！','user/forget');
-			}
-		}
-		if(!Session::has('verify')){
-			$this->error('重置验证码不存在','user/forget');
-		}
-		if($this->request->isPost()){
-            $data = $this->request->only(['password','confirm_password']);
-            $validate_result = $this->validate($data, 'User.resetpwd'); 			
-            if ($validate_result !== true) {
-                $this->error($validate_result);
-            } else {
-	            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
-	            if($this->user_model->allowField(true)->save($data,['id' => Session::get('verify')])){
-	                $this->success('密码重置成功','user/login');
-	            } else {
-	                    $this->error('重置失败');
-	            }    
-        	}
-    	}
-		$this->assign('title', '密码重置');
-		return $this->fetch();
-	}
-	
 }

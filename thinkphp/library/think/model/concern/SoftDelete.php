@@ -51,21 +51,10 @@ trait SoftDelete
         if ($field) {
             return $model
                 ->db(false)
-                ->useSoftDelete($field, $model->getWithTrashedExp());
+                ->useSoftDelete($field, ['not null', '']);
+        } else {
+            return $model->db(false);
         }
-
-        return $model->db(false);
-    }
-
-    /**
-     * 获取软删除数据的查询条件
-     * @access protected
-     * @return array
-     */
-    protected function getWithTrashedExp()
-    {
-        return is_null($this->defaultSoftDelete) ?
-        ['notnull', ''] : ['<>', $this->defaultSoftDelete];
     }
 
     /**
@@ -155,29 +144,19 @@ trait SoftDelete
         $name = $this->getDeleteTimeField();
 
         if (empty($where)) {
-            $pk = $this->getPk();
-
-            $where[] = [$pk, '=', $this->getData($pk)];
+            $pk         = $this->getPk();
+            $where[$pk] = [$pk, '=', $this->getData($pk)];
         }
 
         if ($name) {
-            if (false === $this->trigger('before_restore')) {
-                return false;
-            }
-
             // 恢复删除
-            $result = $this->db(false)
+            return $this->db(false)
                 ->where($where)
-                ->useSoftDelete($name, $this->getWithTrashedExp())
-                ->update([$name => $this->defaultSoftDelete]);
-
-            $this->trigger('after_restore');
-
-            return $result;
-
+                ->useSoftDelete($name, ['not null', ''])
+                ->update([$name => null]);
+        } else {
+            return 0;
         }
-
-        return 0;
     }
 
     /**
@@ -204,20 +183,5 @@ trait SoftDelete
         }
 
         return $field;
-    }
-
-    /**
-     * 查询的时候默认排除软删除数据
-     * @access protected
-     * @param  Query  $query
-     * @return void
-     */
-    protected function withNoTrashed($query)
-    {
-        $field = $this->getDeleteTimeField(true);
-
-        if ($field) {
-            $query->useSoftDelete($field, $this->defaultSoftDelete);
-        }
     }
 }

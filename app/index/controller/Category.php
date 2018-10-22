@@ -43,14 +43,19 @@ class Category extends HomeBase
 	 */
 	public function topic($id)
 	{
-    	$topiclist = $this->topic_model->where(['cid'=>$id,'status'=>1])->order('ord','desc')->paginate(10);
+        $params = $this->request->param();
+        $params['order'] = empty($params['order']) ? 'ord' : $params['order'];
+        $params['order'] = in_array($params['order'], array('ord', 'views')) ? $params['order'] : 'ord';
+    	$topiclist = $this->topic_model->where('cid',$id)->order('ord','desc')->paginate(10);
     	$page=$topiclist->render();
     	$category = $this->category_model->get($id);
 
-    	$hottopic = $this->topic_model->field('id,title,views')->where(['cid'=>$id,'status'=>1])->order('views','desc')->limit(10)->select();
+    	$hottopic = $this->topic_model->field('id,title,views')->where('cid',$id)->order('views','desc')->limit(10)->select();
 
 
     	$title=$category['name'];
+        $this->assign('cid', $id);
+        $this->assign('corder', $params['order']);
         $this->assign('topiclist', $topiclist);
         $this->assign('page', $page);
         $this->assign('category', $category);

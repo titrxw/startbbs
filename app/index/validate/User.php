@@ -8,7 +8,7 @@ use Session;
 class User extends Validate
 {
     protected $rule = [
-		'username' => 'require|min:3|unique:user|chsAlphaNum|user_banned:1',
+		'username' => 'require|min:3|unique:user|chsAlphaNum',
 		'password' => 'require|length:6,20',
 		'confirm_password' => 'confirm:password',
 		'email' => 'email|unique:user',
@@ -17,11 +17,10 @@ class User extends Validate
 		
     ];
     protected $message  =   [
-        'username.require' => '请输入用户名',
-        'username.min' => '用户名最小长度3',
-        'username.unique' => '用户名已存在',
-        'username.chsAlphaNum' => '用户名只能为字母、数字、中文',
-        'username.user_banned' => '禁止注册的用户名，请换一个',
+        'name.require' => '请输入用户名',
+        'name.min' => '用户名最小长度3',
+        'name.unique' => '用户名已存在',
+        'name.chsAlphaNum' => '用户名只能为字母、数字、中文',
         'password.require'     => '请输入密码',
         'password.length'     => '密码长度6-20位',
         'confirm_password.confirm'   => '两次输入密码不一致',
@@ -40,7 +39,7 @@ class User extends Validate
     public function sceneLogin()
     {
     	return $this->only(['username','password','verify'])
-    			->remove('username', 'min|unique|user_banned');
+    			->remove('username', 'unique');
     }
     public function sceneSet_info()
     {
@@ -50,15 +49,6 @@ class User extends Validate
     public function sceneSet_pass()
     {
     	return $this->only(['old_password','password','confirm_password']);
-    }
-    public function sceneForget()
-    {
-    	return $this->only(['email'])
-    	->remove('email', 'unique');
-    }
-    public function sceneResetpwd()
-    {
-    	return $this->only(['password','confirm_password']);
     }
 
 	protected function check_password($value, $rule){
@@ -70,10 +60,6 @@ class User extends Validate
 			return false;
 		}
 		
-	}
-	protected function user_banned($value)
-	{
-		return in_array($value,parse_config_attr(config('user_banned')))?false:true;
 	}
 	//protected function check_username($value, $rule){
 	//	if(preg_match('/^(?!_)(?!.*?_$)[A-Za-z0-9]+$/',$value)){

@@ -20,21 +20,10 @@ class Config implements \ArrayAccess
     private $config = [];
 
     /**
-     * 配置前缀
+     * 缓存前缀
      * @var string
      */
     private $prefix = 'app';
-
-    /**
-     * 应用对象
-     * @var App
-     */
-    protected $app;
-
-    public function __construct(App $app)
-    {
-        $this->app = $app;
-    }
 
     /**
      * 设置配置参数默认前缀
@@ -61,9 +50,9 @@ class Config implements \ArrayAccess
             $type = pathinfo($config, PATHINFO_EXTENSION);
         }
 
-        $object = Loader::factory($type, '\\think\\config\\driver\\', $config);
+        $class = false !== strpos($type, '\\') ? $type : '\\think\\config\\driver\\' . ucwords($type);
 
-        return $this->set($object->parse(), $name);
+        return $this->set((new $class())->parse($config), $name);
     }
 
     /**
@@ -83,11 +72,12 @@ class Config implements \ArrayAccess
                 return $this->set(include $file, $name);
             } elseif ('yaml' == $type && function_exists('yaml_parse_file')) {
                 return $this->set(yaml_parse_file($file), $name);
+            } else {
+                return $this->parse($file, $type, $name);
             }
-            return $this->parse($file, $type, $name);
+        } else {
+            return $this->config;
         }
-
-        return $this->config;
     }
 
     /**
@@ -99,14 +89,15 @@ class Config implements \ArrayAccess
     protected function autoLoad($name)
     {
         // 如果尚未载入 则动态加载配置文件
-        $module = $this->app->request->module();
-        $module = $module ? $module . DIRECTORY_SEPARATOR : '';
-        $path   = $this->app->getAppPath() . $module;
+        $module = Container::get('request')->module();
+        $module = $module ? $module . '/' : '';
+        $app    = Container::get('app');
+        $path   = $app->getAppPath() . $module;
 
         if (is_dir($path . 'config')) {
-            $file = $path . 'config' . DIRECTORY_SEPARATOR . $name . $this->app->getConfigExt();
-        } elseif (is_dir($this->app->getConfigPath() . $module)) {
-            $file = $this->app->getConfigPath() . $module . $name . $this->app->getConfigExt();
+            $file = $path . 'config/' . $name . $app->getConfigExt();
+        } elseif (is_dir($app->getConfigPath() . $module)) {
+            $file = $app->getConfigPath() . $module . $name . $app->getConfigExt();
         }
 
         if (isset($file) && is_file($file)) {
@@ -126,7 +117,7 @@ class Config implements \ArrayAccess
             $name = $this->prefix . '.' . $name;
         }
 
-        return !is_null($this->get($name)) ? true : false;
+        return $this->get($name) ? true : false;
     }
 
     /**

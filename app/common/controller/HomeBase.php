@@ -14,17 +14,17 @@ class HomeBase extends Controller
     protected function initialize()
     {
         parent::initialize();
-        if (config('site_status') != 1) {
+        if (config('base.site_status') != 1) {
            exit('站点已关闭');
         }
-		View::share([
-			'keywords'=>config('site_keywords'),
-			'description'=>config('site_description'),
-		]);
+		if(!is_file('./public/static/install/install.lock')){
+            $this->redirect('/install.php');
+        }
         $this->getNav();
         //$this->getSlide();
-        $this->getCategory();
-		//define('DS',DIRECTORY_SEPARATOR); 
+        print_r($this->getCategory());
+		define('ROOT_PATH',Env::get('root_path'));
+		define('DS',DIRECTORY_SEPARATOR); 
     }
 
     /**

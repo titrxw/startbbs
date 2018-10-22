@@ -2,8 +2,6 @@
 namespace app\admin\controller;
 
 use app\common\model\User as UserModel;
-use app\common\model\Topic;
-use app\common\model\Post;
 use app\common\controller\AdminBase;
 use Config;
 use Db;
@@ -61,9 +59,9 @@ class User extends AdminBase
             if ($validate_result !== true) {
                 $this->error($validate_result);
             } else {
-                $data['password'] =password_hash($data['password'], PASSWORD_DEFAULT);
+                $data['password'] = md5($data['password'] . Config::get('salt'));
                 if ($this->user_model->allowField(true)->save($data)) {
-                    $this->success('添加成功','user/index');
+                    $this->success('保存成功');
                 } else {
                     $this->error('保存失败');
                 }
@@ -103,10 +101,10 @@ class User extends AdminBase
                 $user->email    = $data['email'];
                 $user->status   = $data['status'];
                 if (!empty($data['password']) && !empty($data['confirm_password'])) {
-                    $user->password = password_hash($data['password'], PASSWORD_DEFAULT);
+                    $user->password = md5($data['password'] . Config::get('salt'));
                 }
                 if ($user->save() !== false) {
-                    $this->success('更新成功','user/index');
+                    $this->success('更新成功');
                 } else {
                     $this->error('更新失败');
                 }
@@ -121,9 +119,6 @@ class User extends AdminBase
     public function delete($id)
     {
         if ($this->user_model->destroy($id)) {
-	        Topic::where('uid',$id)->delete();
-	        Post::where('uid',$id)->delete();
-	        //将来需要更新栏目统计和话题统计
             $this->success('删除成功');
         } else {
             $this->error('删除失败');

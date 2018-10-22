@@ -1,5 +1,32 @@
 {extend name="common:base" /}
 {block name="body"}
+<div class="fly-panel fly-column">
+  <div class="layui-container">
+    <ul class="layui-clear">
+      {volist name="category_list" id="vo"}
+      <li><a href="{:url('category/topic',['id'=>$vo.id])}" {if condition="$vo['id']==$cid"} style="color:#5FB878;" {/if}>{$vo.name}</a></li>
+      {/volist}
+    </ul> 
+    
+    <div class="fly-column-right layui-hide-xs">
+        <form style="float: left;" class="layui-form" action="{:url('index/index',array('order'=>$corder))}" method="post">
+          <div class="layui-form-item">
+            <div class="layui-input-inline">
+              <input  style="margin-top: 6px;"  type="text" name="keyword"  class="layui-input">
+              <i style="position: absolute;top: 1px;right: 2px;" class="layui-icon"></i>
+            </div>
+          </div>
+          
+          
+        </form>
+        <a href="{:url('topic/add')}" class="layui-btn">发表新帖</a> 
+      </div> 
+    <div class="layui-hide-sm layui-show-xs-block" style="margin-top: -10px; padding-bottom: 10px; text-align: center;"> 
+      <a href="jie/add.html" class="layui-btn">发表新帖</a> 
+    </div> 
+  </div>
+</div>
+
 <div class="layui-container  fly-marginTop">
   <div class="layui-row layui-col-space15">
     <div class="layui-col-md8">
@@ -9,10 +36,10 @@
           <span class="fly-mid"></span>
           <a href="">精华</a>
           <span class="fly-filter-right layui-hide-xs">
-            <a href="" class="layui-this">按最新</a>
-            <span class="fly-mid"></span>
-            <a href="">按热议</a>
-          </span>
+              <a href="{:url('category/topic',['order'=>'ord','id'=>$cid])}" {if condition="$corder == 'ord'"} class="layui-this" {/if}>按最新</a>
+              <span class="fly-mid"></span>
+              <a href="{:url('category/topic',['order'=>'views','id'=>$cid])}" {if condition="$corder == 'views'"} class="layui-this" {/if}>按热议</a>
+            </span>
         </div>
 
         <ul class="fly-list">          

@@ -13,7 +13,7 @@
 // | 应用设置
 // +----------------------------------------------------------------------
 
-$configs= [
+return [
 
     // 应用调试模式
     'app_debug'              => true,
@@ -24,7 +24,7 @@ $configs= [
     // 是否支持多模块
     'app_multi_module'       => true,
     // 入口自动绑定模块
-    'auto_bind_module'       => false,
+    'auto_bind_module'       => true,
     // 注册的根命名空间
     'root_namespace'         => [],
     // 默认输出类型
@@ -115,9 +115,8 @@ $configs= [
     'show_error_msg'         => false,
     // 异常处理handle类 留空使用 \think\exception\Handle
     'exception_handle'       => '',
+    //版本
+    'version' => 'v2.0.0',
+    //发布时间
+    'publish_time' => '20180316',
 ];
-//动态设置
-if (file_exists($file = Env::get('root_path').'config/site.php')) {
-    $configs = array_merge($configs, include ($file));
-}
-return  $configs;

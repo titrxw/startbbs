@@ -8,14 +8,14 @@ use Think\facade\Cache;
  */
 function get_avatar($id,$size='middle')
 {
-	$savepath = '/uploads/avatar/';
+	$savepath = '/public/uploads/avatar/';
 	$folder = substr($id, -1);
 	$avatar=$savepath.$folder.'/'.$id.'_'.$size.'.png';
 	$file = str_replace('\\', '/', ROOT_PATH . $avatar);
 	if(is_file($file)){
 		return $avatar;
 	}else{
-		return '/uploads/avatar/default_'.$size.'.png';
+		return '/public/uploads/avatar/default_'.$size.'.png';
 	}
 }
 /**
@@ -34,12 +34,3 @@ function get_category_name($cid)
 		}
 	}
 }
-/**
- * 防灌水
- * @param string $
- * @return boole true/false
- */
- function anti_rubbish()
- {
-	return (time()-cookie('last_add_time'))<config('post_space')?true:false;
- }

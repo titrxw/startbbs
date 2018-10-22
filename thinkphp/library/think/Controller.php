@@ -31,6 +31,12 @@ class Controller
     protected $request;
 
     /**
+     * 应用实例
+     * @var \think\App
+     */
+    protected $app;
+
+    /**
      * 验证失败是否抛出异常
      * @var bool
      */
@@ -52,20 +58,24 @@ class Controller
      * 构造方法
      * @access public
      */
-    public function __construct(App $app = null)
+    public function __construct()
     {
-        $this->app     = $app ?: Container::get('app');
-        $this->request = $this->app['request'];
-        $this->view    = $this->app['view'];
+        $this->request = Container::get('request');
+        $this->app     = Container::get('app');
+        $this->view    = Container::get('view')->init(
+            $this->app['config']->pull('template')
+        );
 
         // 控制器初始化
         $this->initialize();
 
         // 前置操作方法
-        foreach ((array) $this->beforeActionList as $method => $options) {
-            is_numeric($method) ?
-            $this->beforeAction($options) :
-            $this->beforeAction($method, $options);
+        if ($this->beforeActionList) {
+            foreach ($this->beforeActionList as $method => $options) {
+                is_numeric($method) ?
+                $this->beforeAction($options) :
+                $this->beforeAction($method, $options);
+            }
         }
     }
 
@@ -222,10 +232,11 @@ class Controller
         if (!$v->check($data)) {
             if ($this->failException) {
                 throw new ValidateException($v->getError());
+            } else {
+                return $v->getError();
             }
-            return $v->getError();
+        } else {
+            return true;
         }
-
-        return true;
     }
 }

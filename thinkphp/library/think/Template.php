@@ -20,7 +20,6 @@ use think\exception\TemplateNotFoundException;
  */
 class Template
 {
-    protected $app;
     /**
      * 模板变量
      * @var array
@@ -84,29 +83,35 @@ class Template
      * @access public
      * @param  array $config
      */
-    public function __construct(App $app, array $config = [])
+    public function __construct(array $config = [])
     {
-        $this->app                  = $app;
-        $this->config['cache_path'] = $app->getRuntimePath() . 'temp/';
-        $this->config               = array_merge($this->config, $config);
-
+        $this->config['cache_path']          = Container::get('app')->getRuntimePath() . 'temp/';
+        $this->config                        = array_merge($this->config, $config);
         $this->config['taglib_begin_origin'] = $this->config['taglib_begin'];
         $this->config['taglib_end_origin']   = $this->config['taglib_end'];
-
-        $this->config['taglib_begin'] = preg_quote($this->config['taglib_begin'], '/');
-        $this->config['taglib_end']   = preg_quote($this->config['taglib_end'], '/');
-        $this->config['tpl_begin']    = preg_quote($this->config['tpl_begin'], '/');
-        $this->config['tpl_end']      = preg_quote($this->config['tpl_end'], '/');
+        $this->config['taglib_begin']        = $this->stripPreg($this->config['taglib_begin']);
+        $this->config['taglib_end']          = $this->stripPreg($this->config['taglib_end']);
+        $this->config['tpl_begin']           = $this->stripPreg($this->config['tpl_begin']);
+        $this->config['tpl_end']             = $this->stripPreg($this->config['tpl_end']);
 
         // 初始化模板编译存储器
-        $type = $this->config['compile_type'] ? $this->config['compile_type'] : 'File';
-
-        $this->storage = Loader::factory($type, '\\think\\template\\driver\\', null);
+        $type          = $this->config['compile_type'] ? $this->config['compile_type'] : 'File';
+        $class         = false !== strpos($type, '\\') ? $type : '\\think\\template\\driver\\' . ucwords($type);
+        $this->storage = new $class();
     }
 
-    public static function __make(Config $config)
+    /**
+     * 字符串替换 避免正则混淆
+     * @access private
+     * @param  string $str
+     * @return string
+     */
+    private function stripPreg($str)
     {
-        return new static($config->pull('template'));
+        return str_replace(
+            ['{', '}', '(', ')', '|', '[', ']', '-', '+', '*', '.', '^', '?'],
+            ['\{', '\}', '\(', '\)', '\|', '\[', '\]', '\-', '\+', '\*', '\.', '\^', '\?'],
+            $str);
     }
 
     /**
@@ -148,6 +153,8 @@ class Template
             $this->config = array_merge($this->config, $config);
         } elseif (isset($this->config[$config])) {
             return $this->config[$config];
+        } else {
+            return;
         }
     }
 
@@ -161,20 +168,20 @@ class Template
     {
         if ('' == $name) {
             return $this->data;
-        }
+        } else {
+            $data = $this->data;
 
-        $data = $this->data;
-
-        foreach (explode('.', $name) as $key => $val) {
-            if (isset($data[$val])) {
-                $data = $data[$val];
-            } else {
-                $data = null;
-                break;
+            foreach (explode('.', $name) as $key => $val) {
+                if (isset($data[$val])) {
+                    $data = $data[$val];
+                } else {
+                    $data = null;
+                    break;
+                }
             }
-        }
 
-        return $data;
+            return $data;
+        }
     }
 
     /**
@@ -195,7 +202,7 @@ class Template
             $this->config($config);
         }
 
-        $cache = $this->app['cache'];
+        $cache = Container::get('cache');
 
         if (!empty($this->config['cache_id']) && $this->config['display_cache']) {
             // 读取渲染缓存
@@ -210,7 +217,7 @@ class Template
         $template = $this->parseTemplateFile($template);
 
         if ($template) {
-            $cacheFile = $this->config['cache_path'] . $this->config['cache_prefix'] . md5($this->config['layout_on'] . $this->config['layout_name'] . $template) . '.' . ltrim($this->config['cache_suffix'], '.');
+            $cacheFile = $this->config['cache_path'] . $this->config['cache_prefix'] . md5($this->config['layout_name'] . $template) . '.' . ltrim($this->config['cache_suffix'], '.');
 
             if (!$this->checkCache($cacheFile)) {
                 // 缓存无效 重新模板编译
@@ -304,7 +311,18 @@ class Template
      */
     private function checkCache($cacheFile)
     {
-        if (!$this->config['tpl_cache'] || !is_file($cacheFile) || !$handle = @fopen($cacheFile, "r")) {
+        // 未开启缓存功能
+        if (!$this->config['tpl_cache']) {
+            return false;
+        }
+
+        // 缓存文件不存在
+        if (!is_file($cacheFile)) {
+            return false;
+        }
+
+        // 读取缓存文件失败
+        if (!$handle = @fopen($cacheFile, "r")) {
             return false;
         }
 
@@ -343,7 +361,7 @@ class Template
     {
         if ($cacheId && $this->config['display_cache']) {
             // 缓存页面输出
-            return $this->app['cache']->has($cacheId);
+            return Container::get('cache')->has($cacheId);
         }
 
         return false;
@@ -399,6 +417,8 @@ class Template
         $this->storage->write($cacheFile, $content);
 
         $this->includeFile = [];
+
+        return;
     }
 
     /**
@@ -470,6 +490,8 @@ class Template
 
         // 还原被替换的Literal标签
         $this->parseLiteral($content, true);
+
+        return;
     }
 
     /**
@@ -486,8 +508,10 @@ class Template
 
         // PHP语法检查
         if ($this->config['tpl_deny_php'] && false !== strpos($content, '<?php')) {
-            throw new Exception('not allow php tag');
+            throw new Exception('not allow php tag', 11600);
         }
+
+        return;
     }
 
     /**
@@ -518,6 +542,8 @@ class Template
         } else {
             $content = str_replace('{__NOLAYOUT__}', '', $content);
         }
+
+        return;
     }
 
     /**
@@ -751,6 +777,8 @@ class Template
 
             return explode(',', $matches['name']);
         }
+
+        return;
     }
 
     /**
@@ -774,6 +802,8 @@ class Template
         $tLib = new $className($this);
 
         $tLib->parseTag($content, $hide ? '' : $tagLib);
+
+        return;
     }
 
     /**
@@ -797,9 +827,9 @@ class Template
 
         if (!empty($name) && isset($array[$name])) {
             return $array[$name];
+        } else {
+            return $array;
         }
-
-        return $array;
     }
 
     /**
@@ -1224,10 +1254,10 @@ class Template
             }
 
             if ($this->config['view_base']) {
-                $module = isset($module) ? $module : $this->app['request']->module();
+                $module = isset($module) ? $module : Container::get('request')->module();
                 $path   = $this->config['view_base'] . ($module ? $module . DIRECTORY_SEPARATOR : '');
             } else {
-                $path = isset($module) ? $this->app->getAppPath() . $module . DIRECTORY_SEPARATOR . basename($this->config['view_path']) . DIRECTORY_SEPARATOR : $this->config['view_path'];
+                $path = isset($module) ? Container::get('app')->getAppPath() . $module . DIRECTORY_SEPARATOR . basename($this->config['view_path']) . DIRECTORY_SEPARATOR : $this->config['view_path'];
             }
 
             $template = $path . $template . '.' . ltrim($this->config['view_suffix'], '.');
@@ -1238,9 +1268,9 @@ class Template
             $this->includeFile[$template] = filemtime($template);
 
             return $template;
+        } else {
+            throw new TemplateNotFoundException('template not exists:' . $template, $template);
         }
-
-        throw new TemplateNotFoundException('template not exists:' . $template, $template);
     }
 
     /**

@@ -58,7 +58,10 @@
                         <label class="layui-form-label">图集</label>
                         <div class="layui-input-block">
                             <button type="button" id="upload-photo-btn" class="layui-btn">上传图集</button>
-                            <div id="photo-container"></div>
+                            <input type="hidden" id="photo" name="photo">
+                            <div id="photo-container">
+
+                            </div>
                         </div>
                     </div>
                     <div class="layui-form-item">
@@ -128,5 +131,25 @@
     }
 });
 })
+upload.render({
+    elem: '#upload-photo-btn',
+    url: '/api.php/upload/upload',
+    type: 'image',
+    ext: 'jpg|png|gif|bmp',
+    size:102400,
+    done: function(res){
+	    //如果上传失败
+        if(res.error == 1){
+	        layer.msg(res.message);
+            return false;
+        } else {
+            //上传成功
+	        layer.msg('上传成功！');
+            // $("#photo").val($("#photo").val())
+            $('#photo-container').append('<img src="'+ res.url +'" style="width: 92px;height: 92px;margin: 0 10px 10px 0;">')
+        }
+
+    }
+});
 </script>
 {/block}

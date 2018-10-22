@@ -37,7 +37,7 @@ class ArticleCategory extends Model
             }
 
             if ($category->where('id', $id)->update($data) !== false) {
-                $children = self::all(['path','like', "%{$id},%"]);
+                $children = $category->all(['path','like', "%{$id},%"]);
                 foreach ($children as $value) {
                     $value->path = $data['path'] . $id . ',';
                     $value->save();

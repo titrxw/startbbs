@@ -58,7 +58,7 @@ class Topic extends HomeBase
             $map['title'] = ['like', "%{$keyword}%"];
         }
 
-        $topic_list  = $this->topic_model->field($field)->where($map)->order('ord','desc')->paginate(15, false, ['page' => $page]);
+        $topic_list  = $this->topic_model->field($field)->where($map)->order(['update_time' => 'DESC'])->paginate(15, false, ['page' => $page]);
         $category_list = $this->category_model->column('name', 'id');
 
         return $this->fetch('index', ['topic_list' => $topic_list, 'category_list' => $category_list, 'cid' => $cid, 'keyword' => $keyword]);
@@ -72,10 +72,6 @@ class Topic extends HomeBase
     {
 	    !is_login() && $this->error('没有登录', 'user/login');
         if ($this->request->isPost()) {
-	        //防灌水
-	        if(anti_rubbish()){
-		        $this->error('发贴时间间隔小于'.config('post_space').'秒');
-	        }
             $data            = $this->request->param();
             $validate_result = $this->validate($data, 'Topic');
 
@@ -94,32 +90,35 @@ class Topic extends HomeBase
 	            if($files){
 		            $data['content'] = str_replace('tmp/'.$data['attach'],'attachment/'.date('Ym'),$data['content']);
 	            }
-	            $data['description'] =strcut(clearhtml($data['content']),0,200);
+	            
                 if ($this->topic_model->allowField(true)->save($data)) {
 	                $data['topic_id']=$this->topic_model->id;
 	            	$data['is_first'] = 1;
-
 	                $this->post_model->allowField(true)->save($data);
 	                $this->topic_model->isUpdate(true)->save(['id' => $data['topic_id'], 'first_post_id' => $this->post_model->id]);
 	                //更新统计
-					$this->category_model->where('id',$data['cid'])->inc('topics')->setInc('posts');
-					$this->user_model->where('id',$data['uid'])->inc('topics')->setInc('posts');
+	                $count = array(
+					  'topics'=>array('exp','topics+1'),
+					  'posts'=>array('exp','posts+1'),
+					);
+					$this->category_model->where('id',$data['cid'])->setField($count);
+					$this->user_model->where('id',$data['uid'])->setField($count);
 					
 		            //移动附件
 		            if($files){
-			            $upload_path = ROOT_PATH . 'uploads';
-			            $tmp_path = $upload_path.DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.$data['attach'];
-			            $new_file_path = $upload_path.DIRECTORY_SEPARATOR.'attachment'.DIRECTORY_SEPARATOR.date('Ym');
-			            $new_save_path = '/uploads/attachment/'.date('Ym').'/';
+			            $upload_path = ROOT_PATH . 'public' . DS . 'uploads';
+			            $tmp_path = $upload_path.DS.'tmp'.DS.$data['attach'];
+			            $new_file_path = $upload_path.DS.'attachment'.DS.date('Ym');
+			            $new_save_path = '/public/uploads/attachment'.DS.date('Ym');
 			            if (!file_exists($new_file_path)) {
 				        	mkdir ($new_file_path, 0777, true );
 						}
 			            foreach($files as $k=>$file){
-				        	$tmp_file=$tmp_path.DIRECTORY_SEPARATOR.$file['savename'];
-				        	$new_file=$new_file_path.DIRECTORY_SEPARATOR.$file['savename'];
+				        	$tmp_file=$tmp_path.DS.$file['savename'];
+				        	$new_file=$new_file_path.DS.$file['savename'];
 				        	rename($tmp_file,$new_file);
 				        	
-				        	$url=$new_save_path.$file['savename'];
+				        	$url=$new_save_path.DS.$file['savename'];
 				        	$attachs[]=$url;//备用
 			                //附件入库
 			                $file_data[] = array (
@@ -136,8 +135,7 @@ class Topic extends HomeBase
 			            $this->attachment_model->saveAll($file_data,false);
 			            rmdir($tmp_path);
 		            }
-		            //记录发贴时间
-		            \Cookie::set('last_add_time',time());
+		            
                     $this->success('发表成功','/topic/detail/id/'.$data['topic_id']);
                 } else {
                     $this->error('保存失败');
@@ -162,7 +160,7 @@ class Topic extends HomeBase
 	 	if(!$topic){
 		 	$this->error('话题不存在');
 	 	}
-	 	$post_list = $this->post_model->where(['topic_id'=>$id,'status'=>1])->order('is_first desc,update_time')->paginate(10);
+	 	$post_list = $this->post_model->where('topic_id',$id)->order('is_first desc,update_time')->paginate(10);
 	 	$page = $post_list->render();
 	 	$post_list=$post_list->toArray();
 	 	
@@ -183,8 +181,6 @@ class Topic extends HomeBase
 	 	$this->assign('post_list',$post_list['data']);
 	 	$this->assign('page', $page);
 	 	$this->assign('title',$topic['title']);
-	 	$this->assign('keywords',isset($topic['keywords'])?:$topic['title']);
-	 	$this->assign('description',$topic['description']);
 	 	$this->assign('attach',time());
 	 	$this->assign('hottopic',$hottopic);
 	 	
@@ -213,31 +209,31 @@ class Topic extends HomeBase
                 $this->error($validate_result);
             } else {
 	            $data['uid'] = session('user_id'); 
-	            $data['ord'] = isset($data['is_top'])?2*time():time();
+	            $data['ord'] = ($data['is_top'])?2*time():time();
 	            
 	            $files=Cache::get($data['attach']);
 	            //附件地址替换
 	            if($files){
 		            $data['content'] = str_replace('tmp/'.$data['attach'],'attachment/'.date('Ym'),$data['content']);
 	            }
-	            $data['description'] =strcut(clearhtml($data['content']),0,200);
+	            
                 if ($this->topic_model->allowField(true)->save($data, $id) !== false) {
-	                $this->post_model->update(['id'=>$topic['first_post_id'],'content'=>$data['content'],'description'=>$data['description']]);
+	                $this->post_model->update(['id'=>$topic['first_post_id'],'content'=>$data['content']]);
 		            //移动附件
 		            if($files){
-			            $upload_path = ROOT_PATH .'uploads';
-			            $tmp_path = $upload_path.DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.$data['attach'];
-			            $new_file_path = $upload_path.DIRECTORY_SEPARATOR.'attachment'.DIRECTORY_SEPARATOR.date('Ym');
-			            $new_save_path = '/uploads/attachment/'.date('Ym').'/';
+			            $upload_path = ROOT_PATH . 'public' . DS . 'uploads';
+			            $tmp_path = $upload_path.DS.'tmp'.DS.$data['attach'];
+			            $new_file_path = $upload_path.DS.'attachment'.DS.date('Ym');
+			            $new_save_path = '/public/uploads/attachment'.DS.date('Ym');
 			            if (!file_exists($new_file_path)) {
 				        	mkdir ($new_file_path, 0777, true );
 						}
 			            foreach($files as $file){
-				        	$tmp_file=$tmp_path.DIRECTORY_SEPARATOR.$file['savename'];
-				        	$new_file=$new_file_path.DIRECTORY_SEPARATOR.$file['savename'];
+				        	$tmp_file=$tmp_path.DS.$file['savename'];
+				        	$new_file=$new_file_path.DS.$file['savename'];
 				        	rename($tmp_file,$new_file);
 				        	
-				        	$url=$new_save_path.$file['savename'];
+				        	$url=$new_save_path.DS.$file['savename'];
 				        	$attachs[]=$url;//备用
 			                //附件入库
 			                $file_data[] = array (
@@ -282,8 +278,12 @@ class Topic extends HomeBase
 	            $posts = $this->post_model->where('topic_id',$id)->delete();
 	            if($posts){
 	                //更新统计
-					$this->category_model->where('id',$data['cid'])->dec('topics')->setDec('posts');
-					$this->user_model->where('id',$data['uid'])->dec('topics')->setDec('posts');
+	                $count = array(
+					  'topics'=>array('exp','topics-1'),
+					  'posts'=>array('exp','posts-'.$posts),
+					);
+					$this->category_model->where('id',$data['cid'])->setField($count);
+					$this->user_model->where('id',$data['uid'])->setField($count);
 	            }
 	            //删除附件
 	            //需要判断是否有附件，再增加

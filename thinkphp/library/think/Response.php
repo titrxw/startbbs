@@ -22,12 +22,6 @@ class Response
     protected $data;
 
     /**
-     * 应用对象实例
-     * @var App
-     */
-    protected $app;
-
-    /**
      * 当前contentType
      * @var string
      */
@@ -88,7 +82,6 @@ class Response
         $this->contentType($this->contentType, $this->charset);
 
         $this->code   = $code;
-        $this->app    = Container::get('app');
         $this->header = array_merge($this->header, $header);
     }
 
@@ -104,13 +97,15 @@ class Response
      */
     public static function create($data = '', $type = '', $code = 200, array $header = [], $options = [])
     {
-        $class = false !== strpos($type, '\\') ? $type : '\\think\\response\\' . ucfirst(strtolower($type));
+        $type = empty($type) ? 'null' : strtolower($type);
+
+        $class = false !== strpos($type, '\\') ? $type : '\\think\\response\\' . ucfirst($type);
 
         if (class_exists($class)) {
             return new $class($data, $code, $header, $options);
+        } else {
+            return new static($data, $code, $header, $options);
         }
-
-        return new static($data, $code, $header, $options);
     }
 
     /**
@@ -122,24 +117,24 @@ class Response
     public function send()
     {
         // 监听response_send
-        $this->app['hook']->listen('response_send', $this);
+        Container::get('hook')->listen('response_send', $this);
 
         // 处理输出数据
         $data = $this->getContent();
 
         // Trace调试注入
-        if ('cli' != PHP_SAPI && $this->app['env']->get('app_trace', $this->app->config('app.app_trace'))) {
-            $this->app['debug']->inject($this, $data);
+        if (Container::get('env')->get('app_trace', Container::get('app')->config('app.app_trace'))) {
+            Container::get('debug')->inject($this, $data);
         }
 
         if (200 == $this->code && $this->allowCache) {
-            $cache = $this->app['request']->getCache();
+            $cache = Container::get('request')->getCache();
             if ($cache) {
                 $this->header['Cache-Control'] = 'max-age=' . $cache[1] . ',must-revalidate';
                 $this->header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
                 $this->header['Expires']       = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + $cache[1]) . ' GMT';
 
-                $this->app['cache']->tag($cache[2])->set($cache[0], [$data, $this->header], $cache[1]);
+                Container::get('cache')->tag($cache[2])->set($cache[0], [$data, $this->header], $cache[1]);
             }
         }
 
@@ -160,11 +155,11 @@ class Response
         }
 
         // 监听response_end
-        $this->app['hook']->listen('response_end', $this);
+        Container::get('hook')->listen('response_end', $this);
 
         // 清空当次请求有效的数据
         if (!($this instanceof RedirectResponse)) {
-            $this->app['session']->flush();
+            Container::get('session')->flush();
         }
     }
 
@@ -357,9 +352,9 @@ class Response
     {
         if (!empty($name)) {
             return isset($this->header[$name]) ? $this->header[$name] : null;
+        } else {
+            return $this->header;
         }
-
-        return $this->header;
     }
 
     /**

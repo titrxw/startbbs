@@ -137,8 +137,8 @@ pre{padding: 10px 15px; margin: 10px 0; font-size: 12px; border-left: 6px solid 
 
 /* 头部 */
 .fly-header{position: fixed; left: 0; top: 0; z-index: 10000; width: 100%; height: 60px; border-bottom: 1px solid #404553; border-right: 1px solid #404553; border-radius: 0;}
-.fly-logo{position: absolute; left: 15px; top: 11px;}
-.fly-nav{margin-left: 200px;}
+.fly-logo{position: absolute; left: 15px; top: 8px;}
+.fly-nav{margin-left: 70px;}
 .fly-nav a i{position: absolute; left: 15px; top: 0; padding-right: 10px; font-size: 32px;}
 .fly-nav a .icon-shouye, .nav a .icon-shezhi{top: 2px;}
 
@@ -193,10 +193,10 @@ pre{padding: 10px 15px; margin: 10px 0; font-size: 12px; border-left: 6px solid 
 .fly-column .layui-badge-dot{position: absolute; top: 50%; left: 50%; margin: -4px 0 0 20px;}
 
 /* 搜索 */
-.fly-search{display: inline-block; vertical-align: top; width: 50px; height: 50px; margin-right: 10px; text-align: center; cursor: pointer; font-size: 20px;}
+.fly-search{display: inline-block; vertical-align: top; width: 30px; height: 50px; margin-right: 10px; text-align: center; cursor: pointer; font-size: 20px;}
 .fly-search .layui-icon{font-size: 20px;}
 .fly-search:hover{color: #5FB878;}
-.fly-layer-search input{height: 50px; line-height: 50px; width: 500px; padding: 0 15px; font-size: 20px; border: none 0; background: none;}
+.fly-layer-search input{height: 75px; line-height: 75px; width: 500px; padding: 0 15px; font-size: 20px; border: none 0; background: none;}
 
 /* 筛选 */
 .fly-filter a{padding: 0 8px; color: #666;}
@@ -346,7 +346,7 @@ body .layui-edit-face  .layui-layer-content{padding:0; background-color:#fff; co
 .detail-body{margin: 20px 0 0;line-height: 26px; font-size: 16px; color: #333; word-wrap: break-word;}
 .detail-body p{margin-bottom:15px;}
 .detail-body a{color:#4f99cf;}
-.detail-body img{max-width: 100%; cursor: crosshair; width: auto;  height: auto; max-width: 100%;  max-height: 100%; }
+.detail-body img{max-width: 100%; cursor: crosshair;}
 .detail-body table{margin: 10px 0 15px;}
 .detail-body table thead{background-color:#f2f2f2;}
 .detail-body table th, 

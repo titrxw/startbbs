@@ -99,9 +99,7 @@
             <div class="detail-body jieda-body photos">
               {$vo.content|raw}
             </div>
-              {if condition="has_permission($vo.uid,1)"}
-              <div class="layui-row">
-				  <div class="layui-col-md1 layui-col-md-offset11">
+            <div class="jieda-reply">
               <!--<span class="jieda-zan zanok" type="zan">
                 <i class="iconfont icon-zan"></i>
                 <em>66</em>
@@ -110,12 +108,14 @@
                 <i class="iconfont icon-svgmoban53"></i>
                 回复
               </span>-->
+              {if condition="has_permission($vo.uid,1)"}
+              <div class="jieda-admin">
                 <span type="edit"><a href="{:url('post/edit',['id'=>$vo['id']])}">编辑</a></span>
                 <span type="del"><a href="{:url('post/delete',['id'=>$vo['id']])}" class="ajax-delete">删除</a></span>
                 <!-- <span class="jieda-accept" type="accept">采纳</span> -->
-				  </div>
-				</div>
+              </div>
               {/if}
+            </div>
           </li>
       {/volist} 
           <!-- 无数据时 -->
@@ -161,7 +161,7 @@
           这里可作为广告区域
         </div>
         <div class="fly-panel-main">
-          <a href="http://www.startbbs.com" target="_blank" class="fly-zanzhu" style="background-color: #5FB878;">StartBBS 2.0 - 匠心之作</a>
+          <a href="http://www.zh5j.cn/" target="_blank" class="fly-zanzhu" style="background-color: #5FB878;">匠心之作</a>
         </div>
       </div>
 
